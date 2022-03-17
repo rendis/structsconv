@@ -9,7 +9,7 @@ import (
 // rulesRegistry mapping rules register.
 var rulesRegistry = make(mapperRulesRegistry)
 
-// RegisterRulesDefinitions registers a mapper rules.
+// RegisterRulesDefinitions it is used to register rule definitions.
 func RegisterRulesDefinitions(definitions ...RulesDefinition) {
 	for _, d := range definitions {
 		registerRules(d.Source, d.Target, d.Rules)
@@ -27,7 +27,9 @@ func registerRules(source interface{}, target interface{}, rules RulesSet) {
 	rulesRegistry[key] = rules
 }
 
-// Map maps a source struct to a target struct.
+// Map maps the source structure to a destination structure; source and target must be pointers to structs.
+//
+// The value will be mapped into the target structure.
 func Map(source interface{}, target interface{}, args ...interface{}) {
 	var wg sync.WaitGroup
 	sourceV := reflect.ValueOf(source)

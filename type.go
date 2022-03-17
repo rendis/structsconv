@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-// RulesDefinition defines the source, target and rules for mapping.
+// RulesDefinition is used to define the source, target and rules for mapping.
 type RulesDefinition struct {
 	Source interface{}
 	Target interface{}
@@ -13,8 +13,8 @@ type RulesDefinition struct {
 
 // RulesSet is a set of rules for mapping 2 specific structs, where the rulesKey is the name of the target field.
 // and value is the rule for the mapping. Value can be:
-// - a string, which is the name of the source field
-// - a function, which will be called to get the target value
+//  - a string, which is the name of the source field
+//  - a function, which will be called to get the target value
 type RulesSet map[string]interface{}
 
 // groupedArgs groups the arguments map by their type.
@@ -30,12 +30,12 @@ type rulesKey struct {
 type mapperRulesRegistry map[rulesKey]RulesSet
 
 // processingResultType types of the processing result
-// - structsMapping 		 (0): the structs are processed using the mapping
-// - slicesMapping  		 (1): the slices are processed by mapping each element
-// - arraysMapping  		 (2): the arrays are processed by mapping each element
-// - mapsMapping    		 (3): the maps are processed using the mapping
-// - directMapping         	 (4): the values are mapping directly
-// - incompatibleTypes 		 (5): incompatible types, so the mapping will be ignored
+//  - structsMapping 		 (0): the structs are processed using the mapping
+//  - slicesMapping  		 (1): the slices are processed by mapping each element
+//  - arraysMapping  		 (2): the arrays are processed by mapping each element
+//  - mapsMapping    		 (3): the maps are processed using the mapping
+//  - directMapping       	 (4): the values are mapping directly
+//  - incompatibleTypes		 (5): incompatible types, so the mapping will be ignored
 type processingResultType int
 
 const (
