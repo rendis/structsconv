@@ -6,8 +6,8 @@ import (
 	"sync"
 )
 
-// mapperRulesRegistry mapping rules register.
-var mapperRulesRegistry = make(mapperRules)
+// rulesRegistry mapping rules register.
+var rulesRegistry = make(mapperRulesRegistry)
 
 // RegisterRulesDefinitions registers a mapper rules.
 func RegisterRulesDefinitions(definitions ...RulesDefinition) {
@@ -19,12 +19,12 @@ func RegisterRulesDefinitions(definitions ...RulesDefinition) {
 // registerRules verifies and registers a mapper rules for specific mapping from structure to structure.
 func registerRules(source interface{}, target interface{}, rules RulesSet) {
 	key := buildKey(source, target)
-	_, exists := mapperRulesRegistry[key]
+	_, exists := rulesRegistry[key]
 	if exists {
-		log.Fatalf("ERROR: Mapper with rulesKey (%s -> %s) already exists.", key.Source, key.Target)
+		log.Fatalf("ERROR: Mapper with rulesKey (%s -> %s) already exists.", key.source, key.target)
 	}
 	checkMapperRules(key, rules)
-	mapperRulesRegistry[key] = rules
+	rulesRegistry[key] = rules
 }
 
 // Map maps a source struct to a target struct.
@@ -53,7 +53,7 @@ func groupArgs(args []interface{}) groupedArgs {
 // structToStruct maps the source struct to the target struct
 func structToStruct(source, target reflect.Value, actualS interface{}, args groupedArgs, wg *sync.WaitGroup) {
 	key := rulesKey{source.Type(), target.Type()}
-	rules := mapperRulesRegistry[key]
+	rules := rulesRegistry[key]
 	targetType := target.Type()
 
 	for i := 0; i < target.NumField(); i++ {
@@ -72,7 +72,7 @@ func structToStruct(source, target reflect.Value, actualS interface{}, args grou
 		// field-to-field mapping source field to target field by target field name
 		sourceValue := source.FieldByName(targetFieldName)
 		if sourceValue.IsValid() {
-			if pType := fieldToField(sourceValue, targetValue, args, wg); pType == IncompatibleTypes {
+			if pType := fieldToField(sourceValue, targetValue, args, wg); pType == incompatibleTypes {
 				logIgnoringMappingForIncompatibleTypes(key, targetFieldName, sourceValue, targetValue)
 			}
 			continue
@@ -139,22 +139,22 @@ func getMethodParams(method reflect.Type, args groupedArgs, current interface{})
 func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) processingResultType {
 	mappingType := getMappingType(sourceValue, targetValue)
 	switch mappingType {
-	case StructsMapping:
+	case structsMapping:
 		wg.Add(1)
 		go cMappingStructLogic(sourceValue, targetValue, args, wg)
-	case SlicesMapping:
+	case slicesMapping:
 		wg.Add(1)
 		go cMappingSliceLogic(sourceValue, targetValue, args, wg)
-	case MapsMapping:
+	case mapsMapping:
 		wg.Add(1)
 		go cMappingMapLogic(sourceValue, targetValue, args, wg)
-	case ArraysMapping:
+	case arraysMapping:
 		wg.Add(1)
 		go cMappingArrayLogic(sourceValue, targetValue, args, wg)
-	case DirectMapping:
+	case directMapping:
 		targetValue.Set(sourceValue)
 	default:
-		return IncompatibleTypes
+		return incompatibleTypes
 	}
 	return mappingType
 }

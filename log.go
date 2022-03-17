@@ -20,7 +20,7 @@ func SetLogWarning(b bool) {
 func logTargetFieldWithoutMappingValueInSource(key rulesKey, targetFieldName string) {
 	if logWarning {
 		log.Printf("WARNING: (%s -> %s) No mapping found for name '%s'.\n",
-			key.Source, key.Target, targetFieldName,
+			key.source, key.target, targetFieldName,
 		)
 	}
 }
@@ -29,7 +29,7 @@ func logIgnoringMappingForIncompatibleTypes(key rulesKey, targetFieldName string
 	if logWarning {
 		log.Printf(
 			"WARNING: (%s -> %s) Ignoring mapping for name '%s' (%s) to (%s), cause: Incompatible types.\n",
-			key.Source, key.Target, targetFieldName, sourceValue.Type(), targetValue.Type(),
+			key.source, key.target, targetFieldName, sourceValue.Type(), targetValue.Type(),
 		)
 	}
 }
