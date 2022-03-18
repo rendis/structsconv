@@ -167,7 +167,7 @@ func cMappingStructLogic(source, target reflect.Value, args groupedArgs, wg *syn
 	structToStruct(source, target, source.Interface(), args, wg)
 }
 
-// cMappingMapLogic is used to be called as a goroutine and maps the structures of the source map to the destination map in a CONCURRENT way.
+// cMappingMapLogic is used to be called as a goroutine and maps the structures of the source map to the destination map in a concurrent way.
 func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var mapWg sync.WaitGroup
@@ -191,7 +191,7 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 	}
 }
 
-// cMappingArrayLogic is used to be called as a goroutine and maps the structures of the source array to the destination array in a CONCURRENT way.
+// cMappingArrayLogic is used to be called as a goroutine and maps the structures of the source array to the destination array in a concurrent way.
 func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var arrayWg sync.WaitGroup
@@ -214,7 +214,7 @@ func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 	}
 }
 
-// cMappingSliceLogic is used to be called as a goroutine and maps the structures of the source slice to the destination slice in a CONCURRENT way.
+// cMappingSliceLogic is used to be called as a goroutine and maps the structures of the source slice to the destination slice in a concurrent way.
 func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var sliceWg sync.WaitGroup
