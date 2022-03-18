@@ -13,7 +13,7 @@ var (
 
 // SetLogWarning turns on (true) or off (false) the warning log messages. Default is on (true).
 //
-// If you want to turn on the warning log messages, you can call this function before you call any other functions.
+// If you want to turn off the warning log messages, you can call this function before you call any other functions.
 func SetLogWarning(b bool) {
 	setLogOnce.Do(func() {
 		logWarning = b
