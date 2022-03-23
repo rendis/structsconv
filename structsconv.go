@@ -4,6 +4,7 @@ import (
 	"log"
 	"reflect"
 	"sync"
+	"unsafe"
 )
 
 // rulesRegistry mapping rules register.
@@ -21,7 +22,7 @@ func registerRules(source interface{}, target interface{}, rules RulesSet) {
 	key := buildKey(source, target)
 	_, exists := rulesRegistry[key]
 	if exists {
-		log.Fatalf("ERROR: Mapper with rulesKey (%s -> %s) already exists.", key.source, key.target)
+		log.Panicf("ERROR: Mapper with rulesKey (%s -> %s) already exists.", key.source, key.target)
 	}
 	checkMapperRules(key, rules)
 	rulesRegistry[key] = rules
@@ -34,10 +35,11 @@ func Map(source interface{}, target interface{}, args ...interface{}) {
 	var wg sync.WaitGroup
 	sourceV := reflect.ValueOf(source)
 	targetV := reflect.ValueOf(target)
-	if err := checkType(sourceV, targetV); err != nil { // check if the source and target are pointers
-		log.Fatalf("ERROR: %s", err)
+	if err := checkRootValuesTypes(sourceV, targetV); err != nil { // check if the source and target are pointers
+		log.Panicf("ERROR: %s", err)
 	}
-	args = append([]interface{}{source}, args...)
+	args = append([]interface{}{sourceV.Interface()}, args...)
+	args = append(args, sourceV.Elem().Interface())
 	structToStruct(sourceV.Elem(), targetV.Elem(), sourceV.Elem().Interface(), groupArgs(args), &wg)
 	wg.Wait()
 }
@@ -99,10 +101,10 @@ func applyRule(source, targetValue reflect.Value, mapper, actualS interface{}, a
 func callFunc(targetValue, mapperValue reflect.Value, actualS interface{}, args groupedArgs) {
 	method := mapperValue.Type()
 	if method.NumIn() == 0 {
-		targetValue.Set(mapperValue.Call([]reflect.Value{})[0])
+		mappingDirectMapping(targetValue, mapperValue.Call([]reflect.Value{})[0])
 	} else {
 		params := getMethodParams(method, args, actualS)
-		targetValue.Set(mapperValue.Call(params)[0])
+		mappingDirectMapping(targetValue, mapperValue.Call(params)[0])
 	}
 }
 
@@ -154,7 +156,7 @@ func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *
 		wg.Add(1)
 		go cMappingArrayLogic(sourceValue, targetValue, args, wg)
 	case directMapping:
-		targetValue.Set(sourceValue)
+		mappingDirectMapping(targetValue, sourceValue)
 	default:
 		return incompatibleTypes
 	}
@@ -174,7 +176,7 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 	defer mapWg.Wait()
 	itemType := targetValue.Type().Elem()
 	var lock sync.Mutex
-	targetValue.Set(reflect.MakeMap(targetValue.Type()))
+	mappingDirectMapping(targetValue, reflect.MakeMap(targetValue.Type()))
 	for _, key := range sourceValue.MapKeys() {
 		mapWg.Add(1)
 		go func(key reflect.Value) {
@@ -231,8 +233,33 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &sliceItemWg)
 			sliceItemWg.Wait()
 			lock.Lock()
-			targetValue.Set(reflect.Append(targetValue, item.Elem()))
+			mappingDirectMapping(targetValue, reflect.Append(targetValue, item.Elem()))
 			lock.Unlock()
 		}(i)
 	}
+}
+
+func mappingDirectMapping(t, s reflect.Value) {
+	switch {
+	case s.CanInterface() && t.CanInterface():
+		t.Set(s)
+	case !s.CanInterface() && !t.CanInterface():
+		s := getUnexportedField(s)
+		setUnexportedField(t, s)
+	case s.CanInterface() && !t.CanInterface():
+		setUnexportedField(t, s)
+	default:
+		s := getUnexportedField(s)
+		t.Set(s)
+	}
+}
+
+func getUnexportedField(field reflect.Value) reflect.Value {
+	return reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
+}
+
+func setUnexportedField(field, value reflect.Value) {
+	reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).
+		Elem().
+		Set(value)
 }
