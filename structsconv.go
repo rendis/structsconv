@@ -172,6 +172,15 @@ func cMappingStructLogic(source, target reflect.Value, args groupedArgs, wg *syn
 // cMappingMapLogic is used to be called as a goroutine and maps the structures of the source map to the destination map in a concurrent way.
 func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	if !targetValue.CanInterface() {
+		log.Printf(
+			"WARNING: Operations on map type fields that are not exported are not supported. Operation ignored. Target = %s\n",
+			targetValue.Type().String(),
+		)
+		return
+	}
+
 	var mapWg sync.WaitGroup
 	defer mapWg.Wait()
 	itemType := targetValue.Type().Elem()
@@ -184,6 +193,13 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 			var mapItemWg sync.WaitGroup
 			item := reflect.New(itemType)
 			sourceItem := sourceValue.MapIndex(key)
+			if !sourceItem.CanInterface() {
+				log.Printf(
+					"WARNING: Operations on MAP type fields that are not exported are not supported. Operation ignored. Source Item = %s\n",
+					sourceItem.Type().String(),
+				)
+				return
+			}
 			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &mapItemWg)
 			mapItemWg.Wait()
 			lock.Lock()
@@ -196,6 +212,9 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 // cMappingArrayLogic is used to be called as a goroutine and maps the structures of the source array to the destination array in a concurrent way.
 func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
+	if !targetValue.CanInterface() {
+		targetValue = getUnexportedField(targetValue)
+	}
 	var arrayWg sync.WaitGroup
 	defer arrayWg.Wait()
 	itemType := targetValue.Type().Elem()
@@ -207,6 +226,9 @@ func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 			var arrayItemWg sync.WaitGroup
 			item := reflect.New(itemType)
 			sourceItem := sourceValue.Index(i)
+			if !sourceItem.CanInterface() {
+				sourceItem = getUnexportedField(sourceItem)
+			}
 			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &arrayItemWg)
 			arrayItemWg.Wait()
 			lock.Lock()
@@ -219,6 +241,9 @@ func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 // cMappingSliceLogic is used to be called as a goroutine and maps the structures of the source slice to the destination slice in a concurrent way.
 func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
+	if !targetValue.CanInterface() {
+		targetValue = getUnexportedField(targetValue)
+	}
 	var sliceWg sync.WaitGroup
 	defer sliceWg.Wait()
 	itemType := targetValue.Type().Elem()
@@ -230,6 +255,9 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 			var sliceItemWg sync.WaitGroup
 			item := reflect.New(itemType)
 			sourceItem := sourceValue.Index(pos)
+			if !sourceItem.CanInterface() {
+				sourceItem = getUnexportedField(sourceItem)
+			}
 			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &sliceItemWg)
 			sliceItemWg.Wait()
 			lock.Lock()
@@ -243,14 +271,19 @@ func mappingDirectMapping(t, s reflect.Value) {
 	switch {
 	case s.CanInterface() && t.CanInterface():
 		t.Set(s)
-	case !s.CanInterface() && !t.CanInterface():
+	case !s.CanInterface() && s.CanAddr() && !t.CanInterface() && t.CanAddr():
 		s := getUnexportedField(s)
 		setUnexportedField(t, s)
-	case s.CanInterface() && !t.CanInterface():
+	case s.CanInterface() && !t.CanInterface() && t.CanAddr():
 		setUnexportedField(t, s)
-	default:
+	case !s.CanInterface() && s.CanAddr() && t.CanInterface():
 		s := getUnexportedField(s)
 		t.Set(s)
+	default:
+		log.Printf(
+			"WARNING: Operations on MAP type fields that are not exported are not supported. Operation ignored. Source = %s, Target = %s\n",
+			s, t,
+		)
 	}
 }
 
