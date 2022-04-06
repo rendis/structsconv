@@ -28,6 +28,231 @@ func Test_RegisterRulesDefinitions_duplicate_error(t *testing.T) {
 	assertPanic(f, "Mapper with rulesKey (structsconv.source -> structsconv.target) already exists", t)
 }
 
+// ptr struct -> ptr struct
+func Test_Map_nested_ptr_struct_case1(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested *nestedSource
+	}
+	type target struct {
+		Name   string
+		Age    int
+		Nested *nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedTarget{Field: "nested"},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// ptr struct -> struct
+func Test_Map_nested_ptr_struct_case2(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested *nestedSource
+	}
+	type target struct {
+		Name   string
+		Age    int
+		Nested nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:   "name",
+		Age:    10,
+		Nested: nestedTarget{Field: "nested"},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// struct -> ptr struct
+func Test_Map_nested_ptr_struct_case3(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested nestedSource
+	}
+	type target struct {
+		Name   string
+		Age    int
+		Nested *nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedTarget{Field: "nested"},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// struct -> ptr struct: with rule
+func Test_Map_nested_ptr_struct_case4(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested nestedSource
+	}
+	type target struct {
+		Name    string
+		Age     int
+		Nested1 *nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:    "name",
+		Age:     10,
+		Nested1: &nestedTarget{Field: "nested"},
+	}
+
+	var rules = RulesSet{"Nested1": "Nested"}
+	RegisterRulesDefinitions(RulesDefinition{Source: source{}, Target: target{}, Rules: rules})
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// ptr struct -> struct: with rule
+func Test_Map_nested_ptr_struct_case5(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested *nestedSource
+	}
+	type target struct {
+		Name    string
+		Age     int
+		Nested1 nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:    "name",
+		Age:     10,
+		Nested1: nestedTarget{Field: "nested"},
+	}
+
+	var rules = RulesSet{"Nested1": "Nested"}
+	RegisterRulesDefinitions(RulesDefinition{Source: source{}, Target: target{}, Rules: rules})
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// ptr struct -> ptr struct: with rule
+func Test_Map_nested_ptr_struct_case6(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Name   string
+		Age    int
+		Nested *nestedSource
+	}
+	type target struct {
+		Name    string
+		Age     int
+		Nested1 *nestedTarget
+	}
+
+	o := &source{
+		Name:   "name",
+		Age:    10,
+		Nested: &nestedSource{Field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Name:    "name",
+		Age:     10,
+		Nested1: &nestedTarget{Field: "nested"},
+	}
+
+	var rules = RulesSet{"Nested1": "Nested"}
+	RegisterRulesDefinitions(RulesDefinition{Source: source{}, Target: target{}, Rules: rules})
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
 func Test_Map_nested_struct(t *testing.T) {
 	type nestedSource struct{ Field string }
 	type nestedTarget struct{ Field string }

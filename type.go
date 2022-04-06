@@ -35,7 +35,8 @@ type mapperRulesRegistry map[rulesKey]RulesSet
 //  - arraysMapping  		 (2): the arrays are processed by mapping each element
 //  - mapsMapping    		 (3): the maps are processed using the mapping
 //  - directMapping       	 (4): the values are mapping directly
-//  - incompatibleTypes		 (5): incompatible types, so the mapping will be ignored
+//  - ptrMapping			 (5): the pointers are processed using the mapping
+//  - incompatibleTypes		 (6): incompatible types, so the mapping will be ignored
 type processingResultType int
 
 const (
@@ -44,6 +45,7 @@ const (
 	arraysMapping
 	mapsMapping
 	directMapping
+	ptrMapping
 	incompatibleTypes
 )
 
@@ -58,7 +60,7 @@ func buildKey(source, target interface{}) rulesKey {
 // getMappingType returns the mapping type for the given values.
 func getMappingType(sourceValue, targetValue reflect.Value) processingResultType {
 	switch {
-	// *S* -> *S*
+	// S -> S
 	case targetValue.Type().AssignableTo(sourceValue.Type()):
 		return directMapping
 	// {S} -> {N}
@@ -73,6 +75,9 @@ func getMappingType(sourceValue, targetValue reflect.Value) processingResultType
 	// map -> map
 	case targetValue.Kind() == reflect.Map && sourceValue.Kind() == reflect.Map:
 		return getMapsMappingType(sourceValue, targetValue)
+	// ptr -> ptr
+	case targetValue.Kind() == reflect.Ptr || sourceValue.Kind() == reflect.Ptr:
+		return ptrMapping
 	// S -> N
 	default:
 		return incompatibleTypes

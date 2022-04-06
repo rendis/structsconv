@@ -74,7 +74,14 @@ func checkMappingName(mappingName, ruleKey string, key rulesKey) {
 		)
 	}
 	tf, _ := key.target.FieldByName(ruleKey)
-	if sf.Type.Kind() != tf.Type.Kind() { // checks if field type is the same in origin and target struct
+
+	switch {
+	case sf.Type.Kind() == reflect.Ptr && tf.Type.Kind() == reflect.Ptr && sf.Type.Elem().Kind() == tf.Type.Elem().Kind(), // both are pointers to the same type
+		sf.Type.Kind() == reflect.Ptr && tf.Type.Kind() != reflect.Ptr && sf.Type.Elem().Kind() == tf.Type.Kind(), // source is pointer to the same type as target
+		sf.Type.Kind() != reflect.Ptr && tf.Type.Kind() == reflect.Ptr && sf.Type.Kind() == tf.Type.Elem().Kind(), // target is pointer to the same type as source
+		sf.Type.Kind() == tf.Type.Kind(): // both are the same type
+		return
+	default:
 		log.Panicf(
 			"ERROR: (%s -> %s) Field '%s' has different type in source (%s:%s) and target (%s:%s) structs.\n",
 			key.source.String(), key.target.String(), ruleKey, mappingName, sf.Type.String(), ruleKey, tf.Type.String(),

@@ -101,10 +101,10 @@ func applyRule(source, targetValue reflect.Value, mapper, actualS interface{}, a
 func callFunc(targetValue, mapperValue reflect.Value, actualS interface{}, args groupedArgs) {
 	method := mapperValue.Type()
 	if method.NumIn() == 0 {
-		mappingDirectMapping(targetValue, mapperValue.Call([]reflect.Value{})[0])
+		mappingDirectMapping(mapperValue.Call([]reflect.Value{})[0], targetValue)
 	} else {
 		params := getMethodParams(method, args, actualS)
-		mappingDirectMapping(targetValue, mapperValue.Call(params)[0])
+		mappingDirectMapping(mapperValue.Call(params)[0], targetValue)
 	}
 }
 
@@ -156,7 +156,9 @@ func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *
 		wg.Add(1)
 		go cMappingArrayLogic(sourceValue, targetValue, args, wg)
 	case directMapping:
-		mappingDirectMapping(targetValue, sourceValue)
+		mappingDirectMapping(sourceValue, targetValue)
+	case ptrMapping:
+		mappingPtrMapping(sourceValue, targetValue, args, wg)
 	default:
 		return incompatibleTypes
 	}
@@ -185,7 +187,7 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 	defer mapWg.Wait()
 	itemType := targetValue.Type().Elem()
 	var lock sync.Mutex
-	mappingDirectMapping(targetValue, reflect.MakeMap(targetValue.Type()))
+	mappingDirectMapping(reflect.MakeMap(targetValue.Type()), targetValue)
 	for _, key := range sourceValue.MapKeys() {
 		mapWg.Add(1)
 		go func(key reflect.Value) {
@@ -261,13 +263,28 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &sliceItemWg)
 			sliceItemWg.Wait()
 			lock.Lock()
-			mappingDirectMapping(targetValue, reflect.Append(targetValue, item.Elem()))
+			mappingDirectMapping(reflect.Append(targetValue, item.Elem()), targetValue)
 			lock.Unlock()
 		}(i)
 	}
 }
 
-func mappingDirectMapping(t, s reflect.Value) {
+func mappingPtrMapping(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
+	switch {
+	case sourceValue.Kind() == reflect.Ptr && targetValue.Kind() != reflect.Ptr:
+		fieldToField(sourceValue.Elem(), targetValue, args, wg)
+	case sourceValue.Kind() != reflect.Ptr && targetValue.Kind() == reflect.Ptr:
+		nv := reflect.New(targetValue.Type().Elem())
+		targetValue.Set(nv)
+		fieldToField(sourceValue, targetValue.Elem(), args, wg)
+	default: // both are pointers
+		nv := reflect.New(targetValue.Type().Elem())
+		targetValue.Set(nv)
+		fieldToField(sourceValue.Elem(), targetValue.Elem(), args, wg)
+	}
+}
+
+func mappingDirectMapping(s, t reflect.Value) {
 	switch {
 	case s.CanInterface() && t.CanInterface():
 		t.Set(s)
