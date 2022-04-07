@@ -269,11 +269,12 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 	}
 }
 
+// mappingPtrMapping is used to map ptr types
 func mappingPtrMapping(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	switch {
-	case sourceValue.Kind() == reflect.Ptr && targetValue.Kind() != reflect.Ptr:
+	case sourceValue.Kind() == reflect.Ptr && targetValue.Kind() != reflect.Ptr: // source is a pointer and target is not a pointer
 		fieldToField(sourceValue.Elem(), targetValue, args, wg)
-	case sourceValue.Kind() != reflect.Ptr && targetValue.Kind() == reflect.Ptr:
+	case sourceValue.Kind() != reflect.Ptr && targetValue.Kind() == reflect.Ptr: // source is not a pointer and target is a pointer
 		nv := reflect.New(targetValue.Type().Elem())
 		targetValue.Set(nv)
 		fieldToField(sourceValue, targetValue.Elem(), args, wg)
@@ -284,6 +285,7 @@ func mappingPtrMapping(sourceValue, targetValue reflect.Value, args groupedArgs,
 	}
 }
 
+// mappingDirectMapping is used to map direct types
 func mappingDirectMapping(s, t reflect.Value) {
 	switch {
 	case s.CanInterface() && t.CanInterface():

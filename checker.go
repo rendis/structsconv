@@ -9,16 +9,16 @@ import (
 // checkRootValuesTypes checks if the ROOT source and target types are valid.
 func checkRootValuesTypes(st, tt reflect.Value) error {
 	if st.Kind() != reflect.Ptr {
-		return fmt.Errorf("MapRules error. Source must be a pointer")
+		return fmt.Errorf("rules error: source must be a pointer")
 	}
 	if tt.Kind() != reflect.Ptr {
-		return fmt.Errorf("MapRules error. Target must be a pointer")
+		return fmt.Errorf("rules error: target must be a pointer")
 	}
 	if st.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("MapRules error. Source must be a pointer to a struct")
+		return fmt.Errorf("rules error: source must be a pointer to a struct")
 	}
 	if tt.Elem().Kind() != reflect.Struct {
-		return fmt.Errorf("MapRules error. Target must be a pointer to a struct")
+		return fmt.Errorf("rules error: target must be a pointer to a struct")
 	}
 	return nil
 }

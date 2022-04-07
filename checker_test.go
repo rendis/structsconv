@@ -26,7 +26,7 @@ func Test_checkRootValuesTypes(t *testing.T) {
 				source: reflect.ValueOf(strValue),
 				target: reflect.ValueOf(strValue),
 			},
-			want: "MapRules error. Source must be a pointer",
+			want: "rules error: source must be a pointer",
 		},
 		{
 			name: "checkRootValuesTypes,(*str,str)",
@@ -34,7 +34,7 @@ func Test_checkRootValuesTypes(t *testing.T) {
 				source: reflect.ValueOf(&strValue),
 				target: reflect.ValueOf(strValue),
 			},
-			want: "MapRules error. Target must be a pointer",
+			want: "rules error: target must be a pointer",
 		},
 		{
 			name: "checkRootValuesTypes,(*str,*str)",
@@ -42,7 +42,7 @@ func Test_checkRootValuesTypes(t *testing.T) {
 				source: reflect.ValueOf(&strValue),
 				target: reflect.ValueOf(&strValue),
 			},
-			want: "MapRules error. Source must be a pointer to a struct",
+			want: "rules error: source must be a pointer to a struct",
 		},
 		{
 			name: "checkRootValuesTypes,(*struct,*str)",
@@ -50,7 +50,7 @@ func Test_checkRootValuesTypes(t *testing.T) {
 				source: reflect.ValueOf(&struct{}{}),
 				target: reflect.ValueOf(&strValue),
 			},
-			want: "MapRules error. Target must be a pointer to a struct",
+			want: "rules error: target must be a pointer to a struct",
 		},
 		{
 			name: "checkRootValuesTypes,(*struct,*struct)",

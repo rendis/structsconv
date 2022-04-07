@@ -304,7 +304,7 @@ func Test_Map_panics(t *testing.T) {
 				source: struct{}{},
 				target: &struct{}{},
 			},
-			wantContains: "MapRules error. Source must be a pointer",
+			wantContains: "rules error: source must be a pointer",
 		},
 		{
 			name: "Mapping with target!=pointer,panic expected",
@@ -312,7 +312,7 @@ func Test_Map_panics(t *testing.T) {
 				source: &struct{}{},
 				target: struct{}{},
 			},
-			wantContains: "MapRules error. Target must be a pointer",
+			wantContains: "rules error: target must be a pointer",
 		},
 	}
 
