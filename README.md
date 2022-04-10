@@ -176,8 +176,8 @@ fmt.Printf("%+v\n", target) // Output: {Name:go shoes Price:100 Keywords:[shoes 
 <br/>
 
 #### map &rarr; map
->     - Source map key type must be equal to target map key type
->     - Source map value type must be equal to target map value type
+>  - Source map key type must be equal to target map key type
+>  - Source map value type must be equal to target map value type
 
 Structs
 ```go
