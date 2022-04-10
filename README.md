@@ -12,7 +12,7 @@ the java [mapstruct](https://mapstruct.org/) library.
 The main purpose of this library is that, within a `hexagonal architecture`, the conversion can be done without 
 the need to _dirty_ the domain layer with `tags`.
 
-For more context about how to use see the [examples](https://github.com/rendis/structsconv/tree/master/example).
+For more information on how to use, see the [examples](https://github.com/rendis/structsconv/tree/master/example).
 
 ## Release Compatibility
 
