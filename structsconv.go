@@ -246,26 +246,22 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 	if !targetValue.CanInterface() {
 		targetValue = getUnexportedField(targetValue)
 	}
-	var sliceWg sync.WaitGroup
-	defer sliceWg.Wait()
 	itemType := targetValue.Type().Elem()
-	var lock sync.Mutex
 	for i := 0; i < sourceValue.Len(); i++ {
-		sliceWg.Add(1)
-		go func(pos int) {
-			defer sliceWg.Done()
-			var sliceItemWg sync.WaitGroup
-			item := reflect.New(itemType)
-			sourceItem := sourceValue.Index(pos)
-			if !sourceItem.CanInterface() {
-				sourceItem = getUnexportedField(sourceItem)
-			}
-			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &sliceItemWg)
-			sliceItemWg.Wait()
-			lock.Lock()
-			mappingDirectMapping(reflect.Append(targetValue, item.Elem()), targetValue)
-			lock.Unlock()
-		}(i)
+		item := reflect.New(itemType)
+		sourceItem := sourceValue.Index(i)
+		if !sourceItem.CanInterface() {
+			sourceItem = getUnexportedField(sourceItem)
+		}
+
+		if itemType.Kind() == reflect.Ptr {
+			mappingPtrMapping(sourceItem, item.Elem(), args, wg)
+		} else if sourceItem.Kind() == reflect.Ptr {
+			structToStruct(sourceItem.Elem(), item.Elem(), sourceItem.Interface(), args, wg)
+		} else {
+			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, wg)
+		}
+		mappingDirectMapping(reflect.Append(targetValue, item.Elem()), targetValue)
 	}
 }
 

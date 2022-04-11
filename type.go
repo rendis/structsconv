@@ -102,10 +102,25 @@ func getMapsMappingType(sourceValue, targetValue reflect.Value) processingResult
 
 // getSlicesMappingType returns the processing type for the given slices.
 func getSlicesMappingType(sourceValue, targetValue reflect.Value) processingResultType {
+	var validCount int8
+	if sourceValue.Type().Elem().Kind() == reflect.Struct ||
+		(sourceValue.Type().Elem().Kind() == reflect.Ptr && sourceValue.Type().Elem().Elem().Kind() == reflect.Struct) {
+		validCount++
+	}
+
+	if targetValue.Type().Elem().Kind() == reflect.Struct ||
+		(targetValue.Type().Elem().Kind() == reflect.Ptr && targetValue.Type().Elem().Elem().Kind() == reflect.Struct) {
+		validCount++
+	}
+
 	// [{}] -> [{}]
-	if sourceValue.Type().Elem().Kind() == reflect.Struct && targetValue.Type().Elem().Kind() == reflect.Struct {
+	// [*{}] -> [{}]
+	// [{}] -> [*{}]
+	// [*{}] -> [*{}]
+	if validCount == 2 {
 		return slicesMapping
 	}
+
 	// [s...] -> [n...]
 	// [s...] -> [{}...]
 	// [{}...] -> [s...]

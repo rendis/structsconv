@@ -253,6 +253,90 @@ func Test_Map_nested_ptr_struct_case6(t *testing.T) {
 	}
 }
 
+// [] ptr struct -> [] ptr struct: with rule
+func Test_Map_slice_ptr_struct_case1(t *testing.T) {
+	type itemSource struct{ Field string }
+	type source struct {
+		Items []*itemSource
+	}
+	type itemTarget struct{ Field string }
+	type target struct {
+		Items []*itemTarget
+	}
+
+	o := &source{
+		Items: []*itemSource{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Items: []*itemTarget{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %#v, want %#v", o, d, d.Items, want.Items)
+	}
+}
+
+// [] struct -> [] ptr struct: with rule
+func Test_Map_slice_ptr_struct_case2(t *testing.T) {
+	type itemSource struct{ Field string }
+	type source struct {
+		Items []itemSource
+	}
+	type itemTarget struct{ Field string }
+	type target struct {
+		Items []*itemTarget
+	}
+
+	o := &source{
+		Items: []itemSource{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Items: []*itemTarget{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %#v, want %#v", o, d, d.Items, want.Items)
+	}
+}
+
+// [] ptr struct -> [] struct: with rule
+func Test_Map_slice_ptr_struct_case3(t *testing.T) {
+	type itemSource struct{ Field string }
+	type source struct {
+		Items []*itemSource
+	}
+	type itemTarget struct{ Field string }
+	type target struct {
+		Items []itemTarget
+	}
+
+	o := &source{
+		Items: []*itemSource{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Items: []itemTarget{{Field: "item1"}, {Field: "item2"}},
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %#v, want %#v", o, d, d.Items, want.Items)
+	}
+}
+
 func Test_Map_nested_struct(t *testing.T) {
 	type nestedSource struct{ Field string }
 	type nestedTarget struct{ Field string }
