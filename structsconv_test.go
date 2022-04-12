@@ -136,8 +136,36 @@ func Test_Map_nested_ptr_struct_case3(t *testing.T) {
 	}
 }
 
-// struct -> ptr struct: with rule
+// nil ptr -> ptr struct
 func Test_Map_nested_ptr_struct_case4(t *testing.T) {
+	type nestedSource struct{ Field string }
+	type nestedTarget struct{ Field string }
+	type source struct {
+		Nested *nestedSource
+	}
+	type target struct {
+		Nested *nestedTarget
+	}
+
+	o := &source{
+		Nested: nil,
+	}
+
+	d := &target{}
+
+	want := &target{
+		Nested: nil,
+	}
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
+// struct -> ptr struct: with rule
+func Test_Map_nested_ptr_struct_case5(t *testing.T) {
 	type nestedSource struct{ Field string }
 	type nestedTarget struct{ Field string }
 	type source struct {
@@ -176,7 +204,7 @@ func Test_Map_nested_ptr_struct_case4(t *testing.T) {
 }
 
 // ptr struct -> struct: with rule
-func Test_Map_nested_ptr_struct_case5(t *testing.T) {
+func Test_Map_nested_ptr_struct_case6(t *testing.T) {
 	type nestedSource struct{ Field string }
 	type nestedTarget struct{ Field string }
 	type source struct {
@@ -215,7 +243,7 @@ func Test_Map_nested_ptr_struct_case5(t *testing.T) {
 }
 
 // ptr struct -> ptr struct: with rule
-func Test_Map_nested_ptr_struct_case6(t *testing.T) {
+func Test_Map_nested_ptr_struct_case7(t *testing.T) {
 	type nestedSource struct{ Field string }
 	type nestedTarget struct{ Field string }
 	type source struct {

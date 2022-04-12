@@ -160,7 +160,7 @@ func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *
 	case ptrMapping:
 		mappingPtrMapping(sourceValue, targetValue, args, wg)
 	default:
-		return incompatibleTypes
+		return mappingType
 	}
 	return mappingType
 }

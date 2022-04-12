@@ -36,7 +36,8 @@ type mapperRulesRegistry map[rulesKey]RulesSet
 //  - mapsMapping    		 (3): the maps are processed using the mapping
 //  - directMapping       	 (4): the values are mapping directly
 //  - ptrMapping			 (5): the pointers are processed using the mapping
-//  - incompatibleTypes		 (6): incompatible types, so the mapping will be ignored
+//  - ignoreMapping 		 (6): mapping will be ignored
+//  - incompatibleTypes		 (7): incompatible types, so the mapping will be ignored
 type processingResultType int
 
 const (
@@ -46,6 +47,7 @@ const (
 	mapsMapping
 	directMapping
 	ptrMapping
+	ignoreMapping
 	incompatibleTypes
 )
 
@@ -77,11 +79,19 @@ func getMappingType(sourceValue, targetValue reflect.Value) processingResultType
 		return getMapsMappingType(sourceValue, targetValue)
 	// ptr -> ptr
 	case targetValue.Kind() == reflect.Ptr || sourceValue.Kind() == reflect.Ptr:
-		return ptrMapping
+		return getPtrMappingType(sourceValue)
 	// S -> N
 	default:
 		return incompatibleTypes
 	}
+}
+
+// getPtrMappingType returns the type of processing depending on the source value.
+func getPtrMappingType(sourceValue reflect.Value) processingResultType {
+	if sourceValue.Kind() == reflect.Ptr && sourceValue.IsNil() {
+		return ignoreMapping
+	}
+	return ptrMapping
 }
 
 // getMapsMappingType returns the processing type for the given maps.
