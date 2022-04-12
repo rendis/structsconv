@@ -28,6 +28,42 @@ func Test_RegisterRulesDefinitions_duplicate_error(t *testing.T) {
 	assertPanic(f, "Mapper with rulesKey (structsconv.source -> structsconv.target) already exists", t)
 }
 
+func Test_Map_source_target_type_panics(t *testing.T) {
+	type args struct {
+		source interface{}
+		target interface{}
+	}
+	var test = []struct {
+		name         string
+		args         args
+		wantContains string
+	}{
+		{
+			name: "Mapping with source!=pointer,panic expected",
+			args: args{
+				source: struct{}{},
+				target: &struct{}{},
+			},
+			wantContains: "rules error: source must be a pointer",
+		},
+		{
+			name: "Mapping with target!=pointer,panic expected",
+			args: args{
+				source: &struct{}{},
+				target: struct{}{},
+			},
+			wantContains: "rules error: target must be a pointer",
+		},
+	}
+
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			var f = func() { Map(tt.args.source, tt.args.target) }
+			assertPanic(f, tt.wantContains, t)
+		})
+	}
+}
+
 // ptr struct -> ptr struct
 func Test_Map_nested_ptr_struct_case1(t *testing.T) {
 	type nestedSource struct{ Field string }
@@ -400,42 +436,6 @@ func Test_Map_nested_struct(t *testing.T) {
 	}
 }
 
-func Test_Map_panics(t *testing.T) {
-	type args struct {
-		source interface{}
-		target interface{}
-	}
-	var test = []struct {
-		name         string
-		args         args
-		wantContains string
-	}{
-		{
-			name: "Mapping with source!=pointer,panic expected",
-			args: args{
-				source: struct{}{},
-				target: &struct{}{},
-			},
-			wantContains: "rules error: source must be a pointer",
-		},
-		{
-			name: "Mapping with target!=pointer,panic expected",
-			args: args{
-				source: &struct{}{},
-				target: struct{}{},
-			},
-			wantContains: "rules error: target must be a pointer",
-		},
-	}
-
-	for _, tt := range test {
-		t.Run(tt.name, func(t *testing.T) {
-			var f = func() { Map(tt.args.source, tt.args.target) }
-			assertPanic(f, tt.wantContains, t)
-		})
-	}
-}
-
 func Test_Map_pkg_visibility(t *testing.T) {
 	type args struct {
 		source *TestSource
@@ -478,11 +478,13 @@ func Test_Map_pkg_visibility(t *testing.T) {
 					fieldS2:              314,
 					fieldUnexportedEqual: 314,
 					FieldExportedEqual:   598,
+					singleListFieldS:     []string{"valueS1", "valueS2"},
 				},
 				target: &TestTarget{},
 				rules: RulesSet{
 					"fieldUnexportedEqual": "FieldExportedEqual",
 					"FieldExportedEqual":   "fieldUnexportedEqual",
+					"singleListFieldT":     "singleListFieldS",
 				},
 			},
 			want: TestTarget{
@@ -492,7 +494,7 @@ func Test_Map_pkg_visibility(t *testing.T) {
 				ignorableTargetField: "",
 				fieldUnexportedEqual: 598,
 				FieldExportedEqual:   314,
-				singleListFieldT:     []string(nil),
+				singleListFieldT:     []string{"valueS1", "valueS2"},
 			},
 		},
 	}
@@ -1151,7 +1153,7 @@ func Test_Map_complex_map(t *testing.T) {
 	}
 }
 
-func Test_Map_complex_map_unexported_error_1(t *testing.T) {
+func Test_Map_complex_map_unexported_case_1(t *testing.T) {
 	type source struct {
 		field1 string
 		field2 int
@@ -1224,7 +1226,7 @@ func Test_Map_complex_map_unexported_error_1(t *testing.T) {
 	}
 }
 
-func Test_Map_complex_map_unexported_error_2(t *testing.T) {
+func Test_Map_complex_map_unexported_case_2(t *testing.T) {
 	type source struct {
 		Field1 string
 		Field2 int
@@ -1288,7 +1290,7 @@ func Test_Map_complex_map_unexported_error_2(t *testing.T) {
 	}
 }
 
-func Test_Map_complex_map_unexported_error_3(t *testing.T) {
+func Test_Map_complex_map_unexported_case_3(t *testing.T) {
 	type source struct {
 		field1 string
 		field2 int
@@ -1297,8 +1299,8 @@ func Test_Map_complex_map_unexported_error_3(t *testing.T) {
 		field1 string
 		field2 int
 	}
-	type complexSourceMap struct{ complexMap map[string]source }
-	type complexTargetMap struct{ ComplexMap map[string]target }
+	type complexSourceMap struct{ unExComplexMap map[string]source }
+	type complexTargetMap struct{ ExComplexMap map[string]target }
 
 	type args struct {
 		source *complexSourceMap
@@ -1315,7 +1317,7 @@ func Test_Map_complex_map_unexported_error_3(t *testing.T) {
 			name: "Source map with same type as the destination",
 			args: args{
 				source: &complexSourceMap{
-					complexMap: map[string]source{
+					unExComplexMap: map[string]source{
 						"one": {
 							field1: "one val",
 							field2: 1,
@@ -1328,11 +1330,11 @@ func Test_Map_complex_map_unexported_error_3(t *testing.T) {
 				},
 				target: &complexTargetMap{},
 				rules: RulesSet{
-					"ComplexMap": "complexMap",
+					"ExComplexMap": "unExComplexMap",
 				},
 			},
 			want: complexTargetMap{
-				ComplexMap: map[string]target{},
+				ExComplexMap: map[string]target{},
 			},
 		},
 	}

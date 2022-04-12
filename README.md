@@ -179,6 +179,8 @@ fmt.Printf("%+v\n", target) // Output: {Name:go shoes Price:100 Keywords:[shoes 
 >  - Source map key type must be equal to target map key type
 >  - Source map value type must be equal to target map value type
 
+> Everything directly associated with the map type **must be exported**.
+
 Structs
 ```go
 // Source struct
