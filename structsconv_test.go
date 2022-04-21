@@ -317,6 +317,41 @@ func Test_Map_nested_ptr_struct_case7(t *testing.T) {
 	}
 }
 
+// struct unexported -> ptr struct exported: with rule
+func Test_Map_nested_ptr_struct_case8(t *testing.T) {
+	type nestedSource struct{ field string }
+	type source struct {
+		nested nestedSource
+	}
+
+	type nestedTarget struct{ Field string }
+	type target struct {
+		Nested *nestedTarget
+	}
+
+	o := &source{
+		nested: nestedSource{field: "nested"},
+	}
+
+	d := &target{}
+
+	want := &target{
+		Nested: &nestedTarget{Field: "nested"},
+	}
+
+	var rootRules = RulesSet{"Nested": "nested"}
+	RegisterRulesDefinitions(RulesDefinition{Source: source{}, Target: target{}, Rules: rootRules})
+
+	var nestedRules = RulesSet{"Field": "field"}
+	RegisterRulesDefinitions(RulesDefinition{Source: nestedSource{}, Target: nestedTarget{}, Rules: nestedRules})
+
+	Map(o, d)
+
+	if !reflect.DeepEqual(d, want) {
+		t.Errorf("Map(%v, %v) = %v, want %v", o, d, d, want)
+	}
+}
+
 // [] ptr struct -> [] ptr struct: with rule
 func Test_Map_slice_ptr_struct_case1(t *testing.T) {
 	type itemSource struct{ Field string }

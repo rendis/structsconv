@@ -168,6 +168,9 @@ func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *
 // cMappingStructLogic is used to be called as a goroutine and map the source field to the destination field in a concurrent way
 func cMappingStructLogic(source, target reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
 	defer wg.Done()
+	if !source.CanInterface() {
+		source = getUnexportedField(source)
+	}
 	structToStruct(source, target, source.Interface(), args, wg)
 }
 
