@@ -3,7 +3,6 @@ package structsconv
 import (
 	"log"
 	"reflect"
-	"sync"
 	"unsafe"
 )
 
@@ -32,7 +31,6 @@ func registerRules(source interface{}, target interface{}, rules RulesSet) {
 //
 // The value will be mapped into the target structure.
 func Map(source interface{}, target interface{}, args ...interface{}) {
-	var wg sync.WaitGroup
 	sourceV := reflect.ValueOf(source)
 	targetV := reflect.ValueOf(target)
 	if err := checkRootValuesTypes(sourceV, targetV); err != nil { // check if the source and target are pointers
@@ -40,8 +38,7 @@ func Map(source interface{}, target interface{}, args ...interface{}) {
 	}
 	args = append([]interface{}{sourceV.Interface()}, args...)
 	args = append(args, sourceV.Elem().Interface())
-	structToStruct(sourceV.Elem(), targetV.Elem(), sourceV.Elem().Interface(), groupArgs(args), &wg)
-	wg.Wait()
+	structToStruct(sourceV.Elem(), targetV.Elem(), sourceV.Elem().Interface(), groupArgs(args))
 }
 
 // groupArgs groups the arguments by their type.
@@ -55,7 +52,7 @@ func groupArgs(args []interface{}) groupedArgs {
 }
 
 // structToStruct maps the source struct to the target struct
-func structToStruct(source, target reflect.Value, actualS interface{}, args groupedArgs, wg *sync.WaitGroup) {
+func structToStruct(source, target reflect.Value, actualS interface{}, args groupedArgs) {
 	key := rulesKey{source.Type(), target.Type()}
 	rules := rulesRegistry[key]
 	targetType := target.Type()
@@ -68,7 +65,7 @@ func structToStruct(source, target reflect.Value, actualS interface{}, args grou
 		if mapper, exists := rules[targetFieldName]; exists {
 			// if the rule is not nil (is not ignorable) apply rule
 			if mapper != nil {
-				applyRule(source, targetValue, mapper, actualS, args, wg)
+				applyRule(source, targetValue, mapper, actualS, args)
 			}
 			continue
 		}
@@ -76,7 +73,7 @@ func structToStruct(source, target reflect.Value, actualS interface{}, args grou
 		// field-to-field mapping source field to target field by target field name
 		sourceValue := source.FieldByName(targetFieldName)
 		if sourceValue.IsValid() {
-			if pType := fieldToField(sourceValue, targetValue, args, wg); pType == incompatibleTypes {
+			if pType := fieldToField(sourceValue, targetValue, args); pType == incompatibleTypes {
 				logIgnoringMappingForIncompatibleTypes(key, targetFieldName, sourceValue, targetValue)
 			}
 			continue
@@ -88,10 +85,10 @@ func structToStruct(source, target reflect.Value, actualS interface{}, args grou
 }
 
 // applyRule processes a rule for a target field.
-func applyRule(source, targetValue reflect.Value, mapper, actualS interface{}, args groupedArgs, wg *sync.WaitGroup) {
+func applyRule(source, targetValue reflect.Value, mapper, actualS interface{}, args groupedArgs) {
 	switch mapperValue := reflect.ValueOf(mapper); mapperValue.Kind() {
 	case reflect.String: // mapper has the name of the source field
-		fieldToField(source.FieldByName(mapper.(string)), targetValue, args, wg)
+		fieldToField(source.FieldByName(mapper.(string)), targetValue, args)
 	default: // mapper is a function
 		callFunc(targetValue, mapperValue, actualS, args)
 	}
@@ -140,44 +137,37 @@ func getMethodParams(method reflect.Type, args groupedArgs, current interface{})
 }
 
 // fieldToField field to field mapping orchestration
-func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) processingResultType {
+func fieldToField(sourceValue, targetValue reflect.Value, args groupedArgs) processingResultType {
 	mappingType := getMappingType(sourceValue, targetValue)
 	switch mappingType {
 	case structsMapping:
-		wg.Add(1)
-		go cMappingStructLogic(sourceValue, targetValue, args, wg)
+		cMappingStructLogic(sourceValue, targetValue, args)
 	case slicesMapping:
-		wg.Add(1)
-		go cMappingSliceLogic(sourceValue, targetValue, args, wg)
+		cMappingSliceLogic(sourceValue, targetValue, args)
 	case mapsMapping:
-		wg.Add(1)
-		go cMappingMapLogic(sourceValue, targetValue, args, wg)
+		cMappingMapLogic(sourceValue, targetValue, args)
 	case arraysMapping:
-		wg.Add(1)
-		go cMappingArrayLogic(sourceValue, targetValue, args, wg)
+		cMappingArrayLogic(sourceValue, targetValue, args)
 	case directMapping:
 		mappingDirectMapping(sourceValue, targetValue)
 	case ptrMapping:
-		mappingPtrMapping(sourceValue, targetValue, args, wg)
+		mappingPtrMapping(sourceValue, targetValue, args)
 	default:
 		return mappingType
 	}
 	return mappingType
 }
 
-// cMappingStructLogic is used to be called as a goroutine and map the source field to the destination field in a concurrent way
-func cMappingStructLogic(source, target reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
-	defer wg.Done()
+// cMappingStructLogic is used to be called as a goroutine and map the source field to the destination field
+func cMappingStructLogic(source, target reflect.Value, args groupedArgs) {
 	if !source.CanInterface() {
 		source = getUnexportedField(source)
 	}
-	structToStruct(source, target, source.Interface(), args, wg)
+	structToStruct(source, target, source.Interface(), args)
 }
 
-// cMappingMapLogic is used to be called as a goroutine and maps the structures of the source map to the destination map in a concurrent way.
-func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
-	defer wg.Done()
-
+// cMappingMapLogic is used to be called as a goroutine and maps the structures of the source map to the destination map
+func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs) {
 	if !targetValue.CanInterface() {
 		log.Printf(
 			"WARNING: Operations on map type fields that are not exported are not supported. Operation ignored. Target = %s\n",
@@ -186,66 +176,42 @@ func cMappingMapLogic(sourceValue, targetValue reflect.Value, args groupedArgs, 
 		return
 	}
 
-	var mapWg sync.WaitGroup
-	defer mapWg.Wait()
 	itemType := targetValue.Type().Elem()
-	var lock sync.Mutex
 	mappingDirectMapping(reflect.MakeMap(targetValue.Type()), targetValue)
 	for _, key := range sourceValue.MapKeys() {
-		mapWg.Add(1)
-		go func(key reflect.Value) {
-			defer mapWg.Done()
-			var mapItemWg sync.WaitGroup
-			item := reflect.New(itemType)
-			sourceItem := sourceValue.MapIndex(key)
-			if !sourceItem.CanInterface() {
-				log.Printf(
-					"WARNING: Operations on MAP type fields that are not exported are not supported. Operation ignored. Source Item = %s\n",
-					sourceItem.Type().String(),
-				)
-				return
-			}
-			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &mapItemWg)
-			mapItemWg.Wait()
-			lock.Lock()
-			targetValue.SetMapIndex(key, item.Elem())
-			lock.Unlock()
-		}(key)
+		item := reflect.New(itemType)
+		sourceItem := sourceValue.MapIndex(key)
+		if !sourceItem.CanInterface() {
+			log.Printf(
+				"WARNING: Operations on MAP type fields that are not exported are not supported. Operation ignored. Source Item = %s\n",
+				sourceItem.Type().String(),
+			)
+			return
+		}
+		structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args)
+		targetValue.SetMapIndex(key, item.Elem())
 	}
 }
 
-// cMappingArrayLogic is used to be called as a goroutine and maps the structures of the source array to the destination array in a concurrent way.
-func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
-	defer wg.Done()
+// cMappingArrayLogic is used to be called as a goroutine and maps the structures of the source array to the destination array
+func cMappingArrayLogic(sourceValue, targetValue reflect.Value, args groupedArgs) {
 	if !targetValue.CanInterface() {
 		targetValue = getUnexportedField(targetValue)
 	}
-	var arrayWg sync.WaitGroup
-	defer arrayWg.Wait()
 	itemType := targetValue.Type().Elem()
-	var lock sync.Mutex
 	for i := 0; i < targetValue.Cap(); i++ {
-		arrayWg.Add(1)
-		go func(i int) {
-			defer arrayWg.Done()
-			var arrayItemWg sync.WaitGroup
-			item := reflect.New(itemType)
-			sourceItem := sourceValue.Index(i)
-			if !sourceItem.CanInterface() {
-				sourceItem = getUnexportedField(sourceItem)
-			}
-			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, &arrayItemWg)
-			arrayItemWg.Wait()
-			lock.Lock()
-			targetValue.Index(i).Set(item.Elem())
-			lock.Unlock()
-		}(i)
+		item := reflect.New(itemType)
+		sourceItem := sourceValue.Index(i)
+		if !sourceItem.CanInterface() {
+			sourceItem = getUnexportedField(sourceItem)
+		}
+		structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args)
+		targetValue.Index(i).Set(item.Elem())
 	}
 }
 
-// cMappingSliceLogic is used to be called as a goroutine and maps the structures of the source slice to the destination slice in a concurrent way.
-func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
-	defer wg.Done()
+// cMappingSliceLogic is used to be called as a goroutine and maps the structures of the source slice to the destination slice
+func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs) {
 	if !targetValue.CanInterface() {
 		targetValue = getUnexportedField(targetValue)
 	}
@@ -258,29 +224,29 @@ func cMappingSliceLogic(sourceValue, targetValue reflect.Value, args groupedArgs
 		}
 
 		if itemType.Kind() == reflect.Ptr {
-			mappingPtrMapping(sourceItem, item.Elem(), args, wg)
+			mappingPtrMapping(sourceItem, item.Elem(), args)
 		} else if sourceItem.Kind() == reflect.Ptr {
-			structToStruct(sourceItem.Elem(), item.Elem(), sourceItem.Interface(), args, wg)
+			structToStruct(sourceItem.Elem(), item.Elem(), sourceItem.Interface(), args)
 		} else {
-			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args, wg)
+			structToStruct(sourceItem, item.Elem(), sourceItem.Interface(), args)
 		}
 		mappingDirectMapping(reflect.Append(targetValue, item.Elem()), targetValue)
 	}
 }
 
 // mappingPtrMapping is used to map ptr types
-func mappingPtrMapping(sourceValue, targetValue reflect.Value, args groupedArgs, wg *sync.WaitGroup) {
+func mappingPtrMapping(sourceValue, targetValue reflect.Value, args groupedArgs) {
 	switch {
 	case sourceValue.Kind() == reflect.Ptr && targetValue.Kind() != reflect.Ptr: // source is a pointer and target is not a pointer
-		fieldToField(sourceValue.Elem(), targetValue, args, wg)
+		fieldToField(sourceValue.Elem(), targetValue, args)
 	case sourceValue.Kind() != reflect.Ptr && targetValue.Kind() == reflect.Ptr: // source is not a pointer and target is a pointer
 		nv := reflect.New(targetValue.Type().Elem())
 		targetValue.Set(nv)
-		fieldToField(sourceValue, targetValue.Elem(), args, wg)
+		fieldToField(sourceValue, targetValue.Elem(), args)
 	default: // both are pointers
 		nv := reflect.New(targetValue.Type().Elem())
 		targetValue.Set(nv)
-		fieldToField(sourceValue.Elem(), targetValue.Elem(), args, wg)
+		fieldToField(sourceValue.Elem(), targetValue.Elem(), args)
 	}
 }
 
