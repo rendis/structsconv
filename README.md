@@ -17,8 +17,7 @@ For more information on how to use, see the [examples](https://github.com/rendis
 ## Release Compatibility
 
 - v1.0.0: is compatible with Golang versions:
-    - 1.17
-    - 1.18
+    - 1.17+
 
 ## Installation
 
