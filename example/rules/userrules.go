@@ -7,7 +7,7 @@ import (
 )
 
 // GetUserDtoToUserDomainRules dto.UserDto{} -> domain.UserDomain{}
-func GetUserDtoToUserDomainRules() structsconv.RulesDefinition {
+func (d *RulesDefinitions) GetUserDtoToUserDomainRules() *structsconv.RulesDefinition {
 	var rules = structsconv.RulesSet{}
 
 	// Name association
@@ -19,7 +19,7 @@ func GetUserDtoToUserDomainRules() structsconv.RulesDefinition {
 	// Set field as ignored
 	rules["IgnorableField"] = nil
 
-	return structsconv.RulesDefinition{
+	return &structsconv.RulesDefinition{
 		Rules:  rules,
 		Source: dto.UserDto{},
 		Target: domain.UserDomain{},

@@ -7,7 +7,7 @@ import (
 )
 
 // GetAddressDtoToAddressDomainRules dto.AddressDto{} -> domain.Address{}
-func GetAddressDtoToAddressDomainRules() structsconv.RulesDefinition {
+func (d *RulesDefinitions) GetAddressDtoToAddressDomainRules() *structsconv.RulesDefinition {
 	var rules = structsconv.RulesSet{}
 
 	// Name association
@@ -16,7 +16,7 @@ func GetAddressDtoToAddressDomainRules() structsconv.RulesDefinition {
 	// Constant
 	rules["Country"] = func() string { return "CL" }
 
-	return structsconv.RulesDefinition{
+	return &structsconv.RulesDefinition{
 		Rules:  rules,
 		Source: dto.AddressDto{},
 		Target: domain.Address{},

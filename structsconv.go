@@ -12,8 +12,30 @@ var rulesRegistry = make(mapperRulesRegistry)
 // RegisterRulesDefinitions it is used to register rule definitions.
 func RegisterRulesDefinitions(definitions ...RulesDefinition) {
 	for _, d := range definitions {
-		registerRules(d.Source, d.Target, d.Rules)
+		//rules = append(rules, supplier.Call([]reflect.Value{})[0].Interface().(RulesDefinition))
+		definition := reflect.ValueOf(d).Interface().(RulesDefinition)
+		registerRules(definition.Source, definition.Target, definition.Rules)
 	}
+}
+
+func RegisterSetOfRulesDefinitions(setDefinitions ...struct{}) {
+	for _, d := range setDefinitions {
+		RegisterRulesDefinitions(getRulesFromSet(reflect.ValueOf(d))...)
+	}
+}
+
+func getRulesFromSet(set reflect.Value) []RulesDefinition {
+	checkSetOfRules(set)
+	var rules []RulesDefinition
+
+	// get all methods from the set
+	for i := 0; i < set.NumMethod(); i++ {
+		supplier := set.Method(i)
+		checkSetDefinitionSupplier(supplier)
+		rules = append(rules, supplier.Call([]reflect.Value{})[0].Interface().(RulesDefinition))
+	}
+
+	return rules
 }
 
 // registerRules verifies and registers a mapper rules for specific mapping from structure to structure.

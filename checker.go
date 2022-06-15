@@ -6,6 +6,58 @@ import (
 	"reflect"
 )
 
+func checkSetOfRules(set reflect.Value) {
+	// set must be a struct or a pointer to a struct
+	if set.Kind() != reflect.Ptr && (set.Kind() != reflect.Ptr && set.Kind() != reflect.Struct) {
+		log.Panicf("ERROR: Set of Rules must be a pointer to a struct or a struct.\n")
+	}
+}
+
+func checkSetDefinitionSupplier(supplier reflect.Value) {
+	// supplier must be a function
+	if supplier.Kind() != reflect.Func {
+		log.Panicf("ERROR: Wrong type of RulesDefinition supplier.\n")
+	}
+
+	// supplier with no arguments
+	if supplier.Type().NumIn() != 0 {
+		log.Panicf("ERROR: Wrong number of arguments in RulesDefinition supplier.\n")
+	}
+
+	// supplier with one return value
+	if supplier.Type().NumOut() != 1 {
+		log.Panicf("ERROR: Wrong number of return values in RulesDefinition supplier.\n")
+	}
+
+	// supplier return value must be a pointer to a struct
+	if supplier.Type().Out(0).Kind() != reflect.Struct || supplier.Type().Out(0).Kind() != reflect.Ptr {
+		log.Panicf("ERROR: Wrong type of return value in RulesDefinition supplier. "+
+			"Expected 'RulesDefinition' but got '%s'.\n", supplier.Type().Out(0).Kind().String(),
+		)
+	}
+
+	// if supplier return value is a pointer, it must be a pointer to a struct
+	if supplier.Type().Out(0).Kind() == reflect.Ptr && supplier.Type().Out(0).Elem().Kind() != reflect.Struct {
+		log.Panicf("ERROR: Wrong type of return value in RulesDefinition supplier. "+
+			"Expected 'RulesDefinition' but got '%s'.\n", supplier.Type().Out(0).Kind().String(),
+		)
+	}
+
+	// if supplier return value is a struct, it must be a RulesDefinition struct
+	if supplier.Type().Out(0).Kind() == reflect.Struct && supplier.Type().Out(0).Name() != "RulesDefinition" {
+		log.Panicf("ERROR: Wrong type of return value in RulesDefinition supplier. "+
+			"Expected 'RulesDefinition' but got '%s'.\n", supplier.Type().Out(0).Name(),
+		)
+	}
+
+	// if supplier return value is a pointer, it must be a pointer to a RulesDefinition struct
+	if supplier.Type().Out(0).Kind() == reflect.Ptr && supplier.Type().Out(0).Elem().Name() != "RulesDefinition" {
+		log.Panicf("ERROR: Wrong type of return value in RulesDefinition supplier. "+
+			"Expected 'RulesDefinition' but got '%s'.\n", supplier.Type().Out(0).Elem().Name(),
+		)
+	}
+}
+
 // checkRootValuesTypes checks if the ROOT source and target types are valid.
 func checkRootValuesTypes(st, tt reflect.Value) error {
 	if st.Kind() != reflect.Ptr {
