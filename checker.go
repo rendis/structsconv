@@ -8,8 +8,8 @@ import (
 
 func checkSetOfRules(set reflect.Value) {
 	// set must be a struct or a pointer to a struct
-	if set.Kind() != reflect.Ptr && (set.Kind() != reflect.Ptr && set.Kind() != reflect.Struct) {
-		log.Panicf("ERROR: Set of Rules must be a pointer to a struct or a struct.\n")
+	if set.Kind() != reflect.Ptr {
+		log.Panicf("ERROR: Set of Rules must be a pointer to a struct.\n")
 	}
 }
 

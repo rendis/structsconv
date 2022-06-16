@@ -11,7 +11,7 @@ import (
 
 func main() {
 	structsconv.RegisterRulesDefinitions(rules.GetUserInfoDtoToUserInfoDomainRules())
-	structsconv.RegisterSetOfRulesDefinitions(&rules.RulesDefinitions{})
+	structsconv.RegisterSetOfRulesDefinitions(rules.RulesDefinitions{})
 
 	var uDto = &dto.UserDto{
 		UserID:   15369764,
