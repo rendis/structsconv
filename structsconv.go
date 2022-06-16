@@ -10,29 +10,44 @@ import (
 var rulesRegistry = make(mapperRulesRegistry)
 
 // RegisterRulesDefinitions it is used to register rule definitions.
-func RegisterRulesDefinitions(definitions ...RulesDefinition) {
+func RegisterRulesDefinitions(definitions ...interface{}) {
 	for _, d := range definitions {
-		//rules = append(rules, supplier.Call([]reflect.Value{})[0].Interface().(RulesDefinition))
-		definition := reflect.ValueOf(d).Interface().(RulesDefinition)
-		registerRules(definition.Source, definition.Target, definition.Rules)
+		r := parseRulesDefinition(d)
+		registerRules(r.Source, r.Target, r.Rules)
 	}
 }
 
-func RegisterSetOfRulesDefinitions(setDefinitions ...struct{}) {
+func RegisterSetOfRulesDefinitions(setDefinitions ...interface{}) {
 	for _, d := range setDefinitions {
 		RegisterRulesDefinitions(getRulesFromSet(reflect.ValueOf(d))...)
 	}
 }
 
-func getRulesFromSet(set reflect.Value) []RulesDefinition {
-	checkSetOfRules(set)
-	var rules []RulesDefinition
+func parseRulesDefinition(definition interface{}) RulesDefinition {
+	val := reflect.ValueOf(definition)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+	if val.Type().Name() != "RulesDefinition" {
+		log.Panicf("ERROR: %s is not a RulesDefinition", val.Type().Elem().Name())
+	}
+	return val.Interface().(RulesDefinition)
+}
 
-	// get all methods from the set
-	for i := 0; i < set.NumMethod(); i++ {
-		supplier := set.Method(i)
+func getRulesFromSet(valDefinitions reflect.Value) []interface{} {
+	checkSetOfRules(valDefinitions)
+	var rules []interface{}
+
+	// get all methods from the valDefinitions
+	for i := 0; i < valDefinitions.NumMethod(); i++ {
+		supplier := valDefinitions.Method(i)
 		checkSetDefinitionSupplier(supplier)
-		rules = append(rules, supplier.Call([]reflect.Value{})[0].Interface().(RulesDefinition))
+
+		val := supplier.Call([]reflect.Value{})[0]
+		if val.Kind() == reflect.Ptr {
+			val = val.Elem()
+		}
+		rules = append(rules, val.Interface().(RulesDefinition))
 	}
 
 	return rules

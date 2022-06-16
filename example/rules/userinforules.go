@@ -8,7 +8,7 @@ import (
 )
 
 // GetUserInfoDtoToUserInfoDomainRules dto.UserInfoDto -> domain.UserInfo
-func GetUserInfoDtoToUserInfoDomainRules() structsconv.RulesDefinition {
+func GetUserInfoDtoToUserInfoDomainRules() *structsconv.RulesDefinition {
 	var rules = structsconv.RulesSet{}
 
 	// Name association
@@ -34,7 +34,7 @@ func GetUserInfoDtoToUserInfoDomainRules() structsconv.RulesDefinition {
 		return fmt.Sprintf("ExternalValue composed from '%s' and '%s'", i.FirstName, s)
 	}
 
-	return structsconv.RulesDefinition{
+	return &structsconv.RulesDefinition{
 		Rules:  rules,
 		Source: dto.UserInfoDto{},
 		Target: domain.UserInfo{},

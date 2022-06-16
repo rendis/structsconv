@@ -30,7 +30,7 @@ func checkSetDefinitionSupplier(supplier reflect.Value) {
 	}
 
 	// supplier return value must be a pointer to a struct
-	if supplier.Type().Out(0).Kind() != reflect.Struct || supplier.Type().Out(0).Kind() != reflect.Ptr {
+	if supplier.Type().Out(0).Kind() != reflect.Struct && supplier.Type().Out(0).Kind() != reflect.Ptr {
 		log.Panicf("ERROR: Wrong type of return value in RulesDefinition supplier. "+
 			"Expected 'RulesDefinition' but got '%s'.\n", supplier.Type().Out(0).Kind().String(),
 		)
