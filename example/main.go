@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/rendis/structsconv"
 	"github.com/rendis/structsconv/example/domain"
 	"github.com/rendis/structsconv/example/dto"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 	structsconv.RegisterRulesDefinitions(rules.GetUserInfoDtoToUserInfoDomainRules())
-	structsconv.RegisterSetOfRulesDefinitions(rules.RulesDefinitions{})
+	structsconv.RegisterSetOfRulesDefinitions(&rules.RulesDefinitions{})
 
 	var uDto = &dto.UserDto{
 		UserID:   15369764,
